@@ -1,9 +1,9 @@
-all: test
+all: pagerank
 
 CXX=mpicxx
 CXXFLAGS=-Wno-deprecated
 
 LIBS=-lboost_graph_parallel -lboost_system
 
-test: test.o
-	$(CXX) $(CXXFLAGS) -o test test.o $(LIBS)
+pagerank: pagerank.o
+	$(CXX) $(CXXFLAGS) -o pagerank pagerank.o $(LIBS)
