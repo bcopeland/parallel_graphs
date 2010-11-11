@@ -1,0 +1,3 @@
+This project contains experimentation on graph parallelism, using the parallel
+boost graphics library on MPI.  This evaluates performance of graph algorithms
+for different partitionings of the input set.
