@@ -57,13 +57,11 @@ int main(int argc, char *argv[])
 
     my_id = process_id(g.process_group());
 
-#if 0
+#if 1
     double sum = 0;
-    for (int i=0; i < dim; i++) {
-        vertex_t v = vertex(i, g);
-        if (owner(v) == my_id)
-            sum += ranks[local(v)];
-    }
+    for (int i=0; i < num_vertices(g); i++)
+        sum += ranks[i];
+
     double full_sum = 0;
     boost::mpi::all_reduce(communicator(g.process_group()),
                        sum, full_sum, std::plus<double>());
