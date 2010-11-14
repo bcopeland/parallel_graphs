@@ -21,7 +21,6 @@ typedef property_map<vertex_t, float> rank_map_t;
 int main(int argc, char *argv[])
 {
     int i;
-    int dim = 11;
     int my_id;
 
     mpi::environment env(argc, argv);
@@ -30,16 +29,17 @@ int main(int argc, char *argv[])
     metis_reader reader(in_graph);
     mpi_process_group pg;
 
+    int dim = reader.num_vertices();
     std::ifstream in_partitions(argv[2]);
     metis_distribution dist(in_partitions, process_id(pg));
-    graph_t g(reader.begin(), reader.end(),
-            reader.num_vertices(), pg, dist);
+    graph_t g(reader.begin(), reader.end(), dim, pg, dist);
+
 
     std::vector<double> ranks(num_vertices(g));
 
     page_rank(g, make_iterator_property_map(ranks.begin(),
               get(boost::vertex_index, g)),
-              n_iterations(10), 0.85, dim);
+              n_iterations(20), 0.85, dim);
 
     my_id = process_id(g.process_group());
 
