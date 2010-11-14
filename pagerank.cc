@@ -3,6 +3,7 @@
 #include <boost/graph/distributed/adjacency_list.hpp>
 #include <boost/graph/distributed/mpi_process_group.hpp>
 #include <boost/random/linear_congruential.hpp>
+#include <boost/graph/metis.hpp>
 #include <vector>
 #include <iostream>
 #include <stdlib.h>
@@ -21,34 +22,19 @@ int main(int argc, char *argv[])
 {
     int i;
     int dim = 11;
-    double initial_rank[dim];
     int my_id;
 
     mpi::environment env(argc, argv);
 
-    for (i = 0; i < dim; i++)
-        initial_rank[i] = 1.0/dim;
+    std::ifstream in_graph(argv[1]);
+    metis_reader reader(in_graph);
+    mpi_process_group pg;
 
-    edge_t edge_array[] =
-    {
-        edge_t(0,1), edge_t(0,2), edge_t(0,3), edge_t(0,4),
-        edge_t(0,5), edge_t(0,6), edge_t(0,7), edge_t(0,8),
-        edge_t(0,9), edge_t(0,10), edge_t(0,0),
-        edge_t(1,2),
-        edge_t(2,1),
-        edge_t(3,0), edge_t(3,1),
-        edge_t(4,1), edge_t(4,3), edge_t(4,5),
-        edge_t(4,1), edge_t(4,3), edge_t(4,5),
-        edge_t(5,1), edge_t(5,4),
-        edge_t(6,1), edge_t(6,4),
-        edge_t(7,1), edge_t(7,4),
-        edge_t(8,1), edge_t(8,4),
-        edge_t(9,4),
-        edge_t(10,4),
-    };
-    int num_edges = sizeof(edge_array)/sizeof(edge_array[0]);
+    std::ifstream in_partitions(argv[2]);
+    metis_distribution dist(in_partitions, process_id(pg));
+    graph_t g(reader.begin(), reader.end(),
+            reader.num_vertices(), pg, dist);
 
-    graph_t g(edge_array, edge_array + num_edges, dim);
     std::vector<double> ranks(num_vertices(g));
 
     page_rank(g, make_iterator_property_map(ranks.begin(),
@@ -72,7 +58,8 @@ int main(int argc, char *argv[])
     for (int i=0; i < dim; i++) {
         vertex_t v = vertex(i, g);
         if (owner(v) == my_id)
-            std::cout << i << ": " << (ranks[local(v)]/full_sum) << std::endl;
+            std::cout << i << ": " << (ranks[local(v)]/full_sum) << " " <<
+                my_id << std::endl;
     }
 
     return 0;
