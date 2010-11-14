@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 
     page_rank(g, make_iterator_property_map(ranks.begin(),
               get(boost::vertex_index, g)),
-              n_iterations(100), 0.85, dim);
+              n_iterations(10), 0.85, dim);
 
     my_id = process_id(g.process_group());
 
