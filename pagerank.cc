@@ -18,6 +18,33 @@ typedef graph_traits<graph_t>::vertex_descriptor vertex_t;
 typedef std::pair<int, int> edge_t;
 typedef property_map<vertex_t, float> rank_map_t;
 
+char *timestr(void)
+{
+    time_t now;
+    struct tm *now_tm;
+    time(&now);
+    now_tm = localtime(&now);
+
+    return asctime(now_tm);
+}
+
+struct completion_test
+{
+    completion_test(std::size_t n) : n(n) {}
+
+    template<typename RankMap, typename Graph>
+    bool operator()(const RankMap& map, const Graph& graph)
+    {
+        int my_id = process_id(graph.process_group());
+        if (my_id == 0)
+            std::cerr << "end iter " << timestr() << std::endl;
+
+        return n-- == 0;
+    }
+ private:
+    std::size_t n;
+};
+
 int main(int argc, char *argv[])
 {
     int i;
@@ -35,15 +62,18 @@ int main(int argc, char *argv[])
     graph_t g(reader.begin(), reader.end(), dim, pg, dist);
 
 
+    my_id = process_id(g.process_group());
+
+    if (my_id == 0)
+        std::cerr << "graph loaded " << timestr() << std::endl;
+
     std::vector<double> ranks(num_vertices(g));
 
     page_rank(g, make_iterator_property_map(ranks.begin(),
               get(boost::vertex_index, g)),
-              n_iterations(20), 0.85, dim);
+              completion_test(10), 0.85, dim);
 
-    my_id = process_id(g.process_group());
-
-#if 1
+#if 0
     double sum = 0;
     for (int i=0; i < num_vertices(g); i++)
         sum += ranks[i];
