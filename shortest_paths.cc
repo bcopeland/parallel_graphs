@@ -4,12 +4,14 @@
 #include <boost/graph/distributed/mpi_process_group.hpp>
 #include <boost/random/linear_congruential.hpp>
 #include <boost/graph/metis.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <vector>
 #include <iostream>
 #include <stdlib.h>
 
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
+using boost::posix_time::ptime;
 using namespace boost::graph;
 
 struct weighted_edge
@@ -59,14 +61,21 @@ int main(int argc, char *argv[])
     graph_t g(reader.begin(), reader.end(),
             reader.num_vertices(), pg, dist);
 
+    ptime start_time(boost::posix_time::microsec_clock::universal_time());
     int start = atoi(argv[3]);
     my_id = process_id(g.process_group());
+
+    synchronize(g.process_group());
 
     vertex_t vstart = vertex(start, g);
     delta_stepping_shortest_paths(g, vstart,
               dummy_property_map(),
               get(&vertex_properties::distance, g),
               get(&weighted_edge::weight, g));
+
+    ptime end_time(boost::posix_time::microsec_clock::universal_time());
+    if (my_id == 0)
+        std::cout << "ran in " << (end_time-start_time) << " s\n";
 
     for (i=0 ; i < reader.num_vertices(); i++)
     {
@@ -77,6 +86,7 @@ int main(int argc, char *argv[])
             std::cout << i << ": " << distance << std::endl;
         }
     }
+
 
     return 0;
 }
