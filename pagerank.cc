@@ -4,12 +4,14 @@
 #include <boost/graph/distributed/mpi_process_group.hpp>
 #include <boost/random/linear_congruential.hpp>
 #include <boost/graph/metis.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <vector>
 #include <iostream>
 #include <stdlib.h>
 
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
+using boost::posix_time::ptime;
 
 using namespace boost::graph;
 typedef adjacency_list<vecS, distributedS<mpi_process_group, vecS>,
@@ -17,16 +19,6 @@ typedef adjacency_list<vecS, distributedS<mpi_process_group, vecS>,
 typedef graph_traits<graph_t>::vertex_descriptor vertex_t;
 typedef std::pair<int, int> edge_t;
 typedef property_map<vertex_t, float> rank_map_t;
-
-char *timestr(void)
-{
-    time_t now;
-    struct tm *now_tm;
-    time(&now);
-    now_tm = localtime(&now);
-
-    return asctime(now_tm);
-}
 
 struct completion_test
 {
@@ -36,9 +28,6 @@ struct completion_test
     bool operator()(const RankMap& map, const Graph& graph)
     {
         int my_id = process_id(graph.process_group());
-        if (my_id == 0)
-            std::cerr << "end iter " << timestr() << std::endl;
-
         return n-- == 0;
     }
  private:
@@ -64,11 +53,13 @@ int main(int argc, char *argv[])
 
     my_id = process_id(g.process_group());
 
+    ptime load_time(boost::posix_time::microsec_clock::universal_time());
     if (my_id == 0)
-        std::cerr << "graph loaded " << timestr() << std::endl;
+        std::cerr << "graph loaded " << load_time << std::endl;
 
     std::vector<double> ranks(num_vertices(g));
 
+    ptime start_time(boost::posix_time::microsec_clock::universal_time());
     page_rank(g, make_iterator_property_map(ranks.begin(),
               get(boost::vertex_index, g)),
               completion_test(10), 0.85, dim);
@@ -84,6 +75,12 @@ int main(int argc, char *argv[])
 #else
     double full_sum = 1.0;
 #endif
+
+    synchronize(g.process_group());
+
+    ptime end_time(boost::posix_time::microsec_clock::universal_time());
+    if (my_id == 0)
+         std::cout << "completed PR in " << (end_time - start_time) << std::endl;
 
     for (int i=0; i < dim; i++) {
         vertex_t v = vertex(i, g);
