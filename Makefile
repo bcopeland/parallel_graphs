@@ -8,7 +8,7 @@ MPICXX=mpicxx
 MPECXX=$(MPE_HOME)/bin/mpecc -mpicc=$(MPICXX) -mpilog
 
 #DEF=-DUSE_SLOW_METIS
-CXX=$(MPECXX)
+CXX=$(MPICXX)
 CXXFLAGS=-Wno-deprecated -g $(DEF)
 LIBS=-lboost_graph_parallel -lboost_system
 
