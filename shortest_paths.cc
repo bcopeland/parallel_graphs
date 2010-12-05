@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <stdlib.h>
+#include "metis_dist_mod.hpp"
 
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
@@ -38,7 +39,6 @@ struct vertex_properties
     }
 };
 
-
 typedef adjacency_list<vecS, distributedS<mpi_process_group, vecS>,
                        directedS, vertex_properties, weighted_edge> graph_t;
 typedef graph_traits<graph_t>::vertex_descriptor vertex_t;
@@ -56,16 +56,29 @@ int main(int argc, char *argv[])
     metis_reader reader(in_graph);
     mpi_process_group pg;
 
+    ptime now(boost::posix_time::microsec_clock::universal_time());
+    if (process_id(pg) == 0)
+        std::cout << "start: " << now << std::endl;
+
     std::ifstream in_partitions(argv[2]);
+
+#if USE_SLOW_METIS
     metis_distribution dist(in_partitions, process_id(pg));
+#else
+    metis_distribution_mod dist(in_partitions, pg);
+#endif
+
     graph_t g(reader.begin(), reader.end(),
             reader.num_vertices(), pg, dist);
 
-    ptime start_time(boost::posix_time::microsec_clock::universal_time());
-    int start = atoi(argv[3]);
     my_id = process_id(g.process_group());
 
-    synchronize(g.process_group());
+    ptime load_time(boost::posix_time::microsec_clock::universal_time());
+    if (my_id == 0)
+        std::cout << "graph loaded in " << (load_time - now) << std::endl;
+
+    ptime start_time(boost::posix_time::microsec_clock::universal_time());
+    int start = atoi(argv[3]);
 
     vertex_t vstart = vertex(start, g);
     delta_stepping_shortest_paths(g, vstart,
@@ -73,10 +86,13 @@ int main(int argc, char *argv[])
               get(&vertex_properties::distance, g),
               get(&weighted_edge::weight, g));
 
+    synchronize(g.process_group());
+
     ptime end_time(boost::posix_time::microsec_clock::universal_time());
     if (my_id == 0)
         std::cout << "ran in " << (end_time-start_time) << " s\n";
 
+#if 0
     for (i=0 ; i < reader.num_vertices(); i++)
     {
         vertex_t v = vertex(i, g);
@@ -86,6 +102,7 @@ int main(int argc, char *argv[])
             std::cout << i << ": " << distance << std::endl;
         }
     }
+#endif
 
 
     return 0;

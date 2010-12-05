@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <stdlib.h>
+#include "metis_dist_mod.hpp"
 
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
@@ -42,20 +43,27 @@ int main(int argc, char *argv[])
     mpi::environment env(argc, argv);
 
     std::ifstream in_graph(argv[1]);
-    metis_reader reader(in_graph);
     mpi_process_group pg;
 
+    ptime now(boost::posix_time::microsec_clock::universal_time());
+    if (process_id(pg) == 0)
+        std::cout << "start: " << now << std::endl;
+
+    metis_reader reader(in_graph);
     int dim = reader.num_vertices();
     std::ifstream in_partitions(argv[2]);
+#ifdef USE_SLOW_METIS
     metis_distribution dist(in_partitions, process_id(pg));
+#else
+    metis_distribution_mod dist(in_partitions, pg);
+#endif
     graph_t g(reader.begin(), reader.end(), dim, pg, dist);
-
 
     my_id = process_id(g.process_group());
 
     ptime load_time(boost::posix_time::microsec_clock::universal_time());
     if (my_id == 0)
-        std::cerr << "graph loaded " << load_time << std::endl;
+        std::cout << "graph loaded in " << (load_time - now) << std::endl;
 
     std::vector<double> ranks(num_vertices(g));
 
@@ -81,13 +89,14 @@ int main(int argc, char *argv[])
     ptime end_time(boost::posix_time::microsec_clock::universal_time());
     if (my_id == 0)
          std::cout << "completed PR in " << (end_time - start_time) << std::endl;
-
+#if 0
     for (int i=0; i < dim; i++) {
         vertex_t v = vertex(i, g);
         if (owner(v) == my_id)
             std::cout << i << ": " << (ranks[local(v)]/full_sum) << " " <<
                 my_id << std::endl;
     }
+#endif
 
     return 0;
 }
