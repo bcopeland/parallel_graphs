@@ -52,6 +52,12 @@ bfs: bfs.o
 shortest_paths: shortest_paths.o
 	$(CXX) $(CXXFLAGS) -o shortest_paths shortest_paths.o $(LIBS)
 
+centrality: centrality.o
+	$(CXX) $(CXXFLAGS) -o centrality centrality.o $(LIBS)
+
+#writeup.pdf: writeup.dvi
+#	dvipdf writeup.dvi
+
 dist: clean
 	mkdir -p build/$(DISTDIR) && \
 	cp -R $(DISTFILES) build/$(DISTDIR) && \

@@ -11,7 +11,6 @@
 #include <limits.h>
 #include "metis_dist_mod.hpp"
 
-
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
 using boost::posix_time::ptime;
