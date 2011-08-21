@@ -1,3 +1,55 @@
 This project contains experimentation on graph parallelism, using the parallel
 boost graphics library on MPI.  This evaluates performance of graph algorithms
 for different partitionings of the input set.
+
+Build prerequisites
+~~~~~~~~~~~~~~~~~~~
+
+This was tested using boost 1.40.0 as installed by my distribution.
+In order to build it with a local copy of boost, do the following:
+
+1. Download boost from:
+     http://sourceforge.net/projects/boost/files/boost/1.40.0/
+
+2. Then do the following steps (substitute boost path in the appropriate
+location):
+    $ echo "using mpi ; " > ~/user-config.jam
+    $ mkdir boost_inst
+    $ tar xjvf boost-1.4.0.tar.bz2
+    $ cd boost_1_40_0
+    $ ./bootstrap.sh \
+        --prefix=/path/to/boost_inst \
+        --with-libraries=mpi,system,graph,graph_parallel,filesystem,date_time
+    $ ./bjam
+    $ ./bjam install
+
+3. Edit Makefile and set BOOST_ROOT then run "$ make"
+
+This much was tested on cluster420 and Amazon EC2, though there may be some
+required fiddling with the link libraries if there is another copy of
+boost on the machine.
+
+The Kernighan-Lin partitioner uses glib-2.0 for its hash table.  If not
+needed, it can be commented out of the build.
+
+queue_modified.ipp is a modified version of the distributed queue to
+put in the boost install directory.  This records some additional
+information used when making charts.
+
+The script speedup.sh runs bfs for various partitions and records the
+output.  It can be parsed by make_charts.pl but this requires the
+aforementioned queue changes.
+
+I did not include the twitter graph, because it is too big to email.
+I can provide it on request.  Instead there is wikipedia.graph
+and wikipedia.part which give the file format (this is the graph
+on the wikipedia page for PageRank used to test the pagerank executable).
+
+There are various executables here -- delta stepping shortest paths,
+pagerank, and bfs.  I experimented with the others but only
+reported results for bfs since the paper was already long enough.
+
+The version of METIS I used was serial metis-4.0.  Parallel versions
+would be good too but they don't include the command line utilities.
+The undirect.pl script converts a directed graph to an undirected
+version.
